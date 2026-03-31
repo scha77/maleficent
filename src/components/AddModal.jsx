@@ -16,38 +16,25 @@ import { checkRateLimit } from "../utils/rateLimit.js";
 import CategoryPicker from "./CategoryPicker.jsx";
 import styles from "../styles/AddModal.module.css";
 
-function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function daysInMonth(month, year) {
+  if (!month || !year) return 31;
+  return new Date(year, month, 0).getDate();
 }
 
-function getDateShortcuts() {
-  const today = new Date();
-  const shortcuts = [
-    { label: "Today", value: formatDate(today) },
-    {
-      label: "Yesterday",
-      value: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)),
-    },
-  ];
-  for (let i = 2; i <= 4; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-    shortcuts.push({
-      label: d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
-      value: formatDate(d),
-    });
-  }
-  shortcuts.push({
-    label: "1 week ago",
-    value: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)),
-  });
-  shortcuts.push({
-    label: "1 month ago",
-    value: formatDate(new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())),
-  });
-  return shortcuts;
+function buildSourceDate(y, m, d) {
+  if (!y || !m || !d) return "";
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function parseSourceDate(dateStr) {
+  if (!dateStr) return { y: "", m: "", d: "" };
+  const [y, m, d] = dateStr.split("-");
+  return { y, m: String(Number(m)), d: String(Number(d)) };
 }
 
 export default function AddModal({ onClose, existingUrls }) {
@@ -250,37 +237,59 @@ export default function AddModal({ onClose, existingUrls }) {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="evidence-date">
+          <label className={styles.label}>
             Source date (when did this originally happen?)
           </label>
-          <div className={styles.dateShortcuts}>
-            {getDateShortcuts().map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() =>
-                  setSourceDate(sourceDate === s.value ? "" : s.value)
-                }
-                className={
-                  sourceDate === s.value
-                    ? styles.dateShortcutActive
-                    : styles.dateShortcut
-                }
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className={styles.dateExact}>
-            <span className={styles.dateExactLabel}>or pick:</span>
-            <input
-              id="evidence-date"
-              type="date"
-              value={sourceDate}
-              onChange={(e) => setSourceDate(e.target.value)}
-              className={styles.dateExactInput}
-            />
-          </div>
+          {(() => {
+            const parsed = parseSourceDate(sourceDate);
+            const currentYear = new Date().getFullYear();
+            const maxDay = daysInMonth(
+              Number(parsed.m) || 1,
+              Number(parsed.y) || currentYear
+            );
+            const updateDate = (y, m, d) => {
+              const clamped = Math.min(Number(d) || 0, daysInMonth(Number(m) || 1, Number(y) || currentYear));
+              setSourceDate(buildSourceDate(y, m, clamped || d));
+            };
+            return (
+              <div className={styles.dateSelects}>
+                <select
+                  value={parsed.m}
+                  onChange={(e) => updateDate(parsed.y, e.target.value, parsed.d)}
+                  className={styles.dateSelect}
+                  aria-label="Month"
+                >
+                  <option value="">Month</option>
+                  {MONTHS.map((name, i) => (
+                    <option key={i} value={i + 1}>{name}</option>
+                  ))}
+                </select>
+                <select
+                  value={parsed.d}
+                  onChange={(e) => updateDate(parsed.y, parsed.m, e.target.value)}
+                  className={styles.dateSelect}
+                  aria-label="Day"
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: maxDay }, (_, i) => (
+                    <option key={i} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+                <select
+                  value={parsed.y}
+                  onChange={(e) => updateDate(e.target.value, parsed.m, parsed.d)}
+                  className={styles.dateSelect}
+                  aria-label="Year"
+                >
+                  <option value="">Year</option>
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const yr = currentYear - i;
+                    return <option key={yr} value={yr}>{yr}</option>;
+                  })}
+                </select>
+              </div>
+            );
+          })()}
         </div>
 
         <div className={styles.field}>

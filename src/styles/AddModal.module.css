@@ -83,58 +83,30 @@
   box-sizing: border-box;
 }
 
-.dateInput {
-  composes: input;
-  color-scheme: dark;
-}
-
-.dateShortcuts {
+.dateSelects {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.dateShortcut {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-faint);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.dateShortcut:active {
-  transform: scale(0.96);
-}
-
-.dateShortcutActive {
-  composes: dateShortcut;
-  background: var(--accent-bg);
-  color: var(--accent);
-  border-color: var(--accent-border);
-}
-
-.dateExact {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-.dateExactLabel {
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.dateExactInput {
-  composes: input;
-  color-scheme: dark;
+.dateSelect {
   flex: 1;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  color-scheme: dark;
+  outline: none;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.3)'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 26px;
+  min-width: 0;
 }
 
 .textarea {
