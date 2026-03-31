@@ -230,3 +230,77 @@
 .sentinel {
   height: 1px;
 }
+
+/* ── Username toggle bar ── */
+.usernameBar {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 8px 16px 0;
+}
+
+.usernameToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  transition: color 0.2s;
+}
+
+.usernameToggle:hover {
+  color: var(--text-primary);
+}
+
+.usernameToggleLabel {
+  letter-spacing: 0.02em;
+}
+
+.usernameArrow {
+  display: inline-block;
+  font-size: 11px;
+  transition: transform 0.2s;
+}
+
+.usernameArrowOpen {
+  transform: rotate(180deg);
+}
+
+.usernameList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+.usernameTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-faint);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+}
+
+.usernameRemove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 1px;
+  transition: color 0.2s;
+}
+
+.usernameRemove:hover {
+  color: var(--accent);
+}

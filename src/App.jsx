@@ -31,6 +31,7 @@ export default function App() {
   const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [hasMore, setHasMore] = useState(true);
   const [activeYear, setActiveYear] = useState("");
+  const [showUsernames, setShowUsernames] = useState(false);
   const undoRef = useRef(null);
   const sentinelRef = useRef(null);
   const timelineRef = useRef(null);
@@ -127,9 +128,15 @@ export default function App() {
     [items]
   );
 
+  const usernameItems = useMemo(
+    () => items.filter((i) => i.type === "username"),
+    [items]
+  );
+
   const filtered = useMemo(
     () =>
       items.filter((i) => {
+        if (i.type === "username") return false;
         const cats = getCats(i);
         if (filterCat !== "all" && !cats.includes(filterCat)) return false;
         return true;
@@ -145,15 +152,20 @@ export default function App() {
     return s;
   }, [filtered]);
 
+  const evidenceItems = useMemo(
+    () => items.filter((i) => i.type !== "username"),
+    [items]
+  );
+
   const catCounts = useMemo(() => {
     const counts = {};
-    items.forEach((i) =>
+    evidenceItems.forEach((i) =>
       getCats(i).forEach((c) => {
         counts[c] = (counts[c] || 0) + 1;
       })
     );
     return counts;
-  }, [items]);
+  }, [evidenceItems]);
 
   if (loading)
     return (
@@ -199,7 +211,7 @@ export default function App() {
               className={`${styles.filterChip} ${filterCat === "all" ? styles.filterChipActive : ""}`}
               aria-pressed={filterCat === "all"}
             >
-              All ({items.length})
+              All ({evidenceItems.length})
             </button>
             {CATEGORIES.map((c) => {
               const count = catCounts[c.id] || 0;
@@ -257,8 +269,42 @@ export default function App() {
         </div>
       </div>
 
+      {/* username toggle */}
+      {usernameItems.length > 0 && (
+        <div className={styles.usernameBar}>
+          <button
+            className={styles.usernameToggle}
+            onClick={() => setShowUsernames((v) => !v)}
+            aria-expanded={showUsernames}
+          >
+            <span className={styles.usernameToggleLabel}>
+              Known accounts ({usernameItems.length})
+            </span>
+            <span className={`${styles.usernameArrow} ${showUsernames ? styles.usernameArrowOpen : ""}`}>
+              &#x25BE;
+            </span>
+          </button>
+          {showUsernames && (
+            <div className={styles.usernameList}>
+              {usernameItems.map((u) => (
+                <span key={u.id} className={styles.usernameTag}>
+                  {u.usernames}
+                  <button
+                    className={styles.usernameRemove}
+                    onClick={() => handleDelete(u.id)}
+                    aria-label={`Remove ${u.usernames}`}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* content */}
-      {items.length === 0 ? (
+      {evidenceItems.length === 0 ? (
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>&#x1F4CE;</div>
           <p className={styles.emptyTitle}>No evidence yet.</p>
