@@ -1,0 +1,231 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+.header {
+  text-align: center;
+  padding: 48px 20px 20px;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: clamp(26px, 5vw, 40px);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 12px 16px;
+  background: var(--bg-toolbar);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toolbarInner {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.searchRow {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.3;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 36px 12px 38px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.searchClose {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.searchToggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.searchToggleBtn {
+  background: none;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.filterRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filterChip {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border-faint);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.filterChipActive {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.addBtn {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-border);
+  cursor: pointer;
+  background: var(--accent-light);
+  color: var(--accent);
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.empty {
+  text-align: center;
+  padding: 64px 20px;
+  animation: fadeUp 0.6s ease;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.emptyHint {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 80;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 24px;
+  background: rgba(194, 120, 92, 0.9);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingPage {
+  composes: page;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loadingDot {
+  font-size: 24px;
+  margin-bottom: 12px;
+  animation: pulse 1.5s ease infinite;
+}
+
+.loadingText {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.errorPage {
+  composes: page;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 24px;
+}
+
+.errorInner {
+  text-align: center;
+  max-width: 480px;
+}
+
+.errorIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.errorTitle {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  margin-bottom: 16px;
+}
+
+.errorText {
+  color: var(--text-muted);
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.errorCode {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sentinel {
+  height: 1px;
+}

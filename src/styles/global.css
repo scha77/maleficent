@@ -1,0 +1,48 @@
+:root {
+  --bg-primary: #141210;
+  --bg-glass: rgba(255, 255, 255, 0.03);
+  --bg-overlay: rgba(28, 25, 22, 0.97);
+  --bg-toolbar: rgba(20, 18, 16, 0.88);
+  --border-glass: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-faint: rgba(255, 255, 255, 0.08);
+  --text-primary: #ece4da;
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --text-faint: rgba(255, 255, 255, 0.15);
+  --accent: #c2785c;
+  --accent-bg: rgba(194, 120, 92, 0.2);
+  --accent-light: rgba(194, 120, 92, 0.25);
+  --accent-border: rgba(194, 120, 92, 0.3);
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "DM Sans", sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 20px;
+  --nsfw-color: #a85c5c;
+  --nsfw-text: #d4a0a0;
+  --nsfw-btn-bg: rgba(168, 92, 92, 0.25);
+  --nsfw-btn-text: #e8c4c4;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

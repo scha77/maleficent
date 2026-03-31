@@ -1,0 +1,32 @@
+.toast {
+  position: fixed;
+  bottom: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: rgba(28, 25, 22, 0.95);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+}
+
+.message {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.undoBtn {
+  background: none;
+  border: 1px solid rgba(194, 120, 92, 0.4);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
