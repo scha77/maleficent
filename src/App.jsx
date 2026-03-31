@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp,
+  collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp,
 } from "firebase/firestore";
 import {
   ref as storageRef, uploadBytes, getDownloadURL,
@@ -69,6 +69,34 @@ const S = {
   },
 };
 
+/* ── helpers: categories ── */
+const getCats = (item) => item.categories || [item.category || "other"];
+
+function CategoryPicker({ selected, onChange }) {
+  const toggle = (id) => {
+    if (selected.includes(id)) {
+      if (selected.length > 1) onChange(selected.filter((s) => s !== id));
+    } else {
+      onChange([...selected, id]);
+    }
+  };
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+      {CATEGORIES.map((c) => {
+        const active = selected.includes(c.id);
+        return (
+          <button key={c.id} onClick={() => toggle(c.id)} type="button" style={{
+            fontSize: "11px", padding: "5px 10px", borderRadius: "20px", cursor: "pointer", transition: "all .2s",
+            background: active ? `${c.color}25` : "rgba(255,255,255,0.05)",
+            color: active ? c.color : "rgba(255,255,255,0.35)",
+            border: `1px solid ${active ? `${c.color}44` : "rgba(255,255,255,0.08)"}`,
+          }}>{c.icon} {c.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── NSFW gate ── */
 function NsfwGate({ onReveal }) {
   return (
@@ -92,27 +120,56 @@ function NsfwGate({ onReveal }) {
 /* ── Evidence Card ── */
 function EvidenceCard({ item, onDelete }) {
   const [revealed, setRevealed] = useState(false);
-  const cat = CAT_MAP[item.category] || CAT_MAP.other;
+  const [editing, setEditing] = useState(false);
+  const [editCats, setEditCats] = useState([]);
+  const cats = getCats(item);
   const gated = item.nsfw && !revealed;
+
+  const startEdit = () => { setEditCats(cats); setEditing(true); };
+  const saveEdit = async () => {
+    try {
+      await updateDoc(doc(db, "evidence", item.id), { categories: editCats, category: editCats[0] });
+      setEditing(false);
+    } catch (err) { console.error("Update error:", err); }
+  };
 
   return (
     <div style={{ ...S.glass, padding: 0, overflow: "hidden", position: "relative" }}>
       {gated && <NsfwGate onReveal={() => setRevealed(true)} />}
       <div style={{ padding: "14px 14px 10px", filter: gated ? "blur(12px)" : "none", transition: "filter .3s" }}>
         {/* header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-          <span style={{
-            fontSize: "11px", padding: "4px 12px", borderRadius: "20px",
-            background: `${cat.color}18`, color: cat.color, border: `1px solid ${cat.color}33`,
-            letterSpacing: ".04em",
-          }}>{cat.icon} {cat.label}</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", flex: 1, alignItems: "center" }}>
+            {cats.map((id) => {
+              const c = CAT_MAP[id] || CAT_MAP.other;
+              return (
+                <span key={id} style={{
+                  fontSize: "11px", padding: "4px 10px", borderRadius: "20px",
+                  background: `${c.color}18`, color: c.color, border: `1px solid ${c.color}33`,
+                  letterSpacing: ".04em",
+                }}>{c.icon} {c.label}</span>
+              );
+            })}
+            <button onClick={startEdit}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "11px", opacity: 0.3, padding: "4px 6px", color: "#ece4da" }}
+              title="Edit categories">✎</button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
             {item.sourceDate && <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>{fmt(item.sourceDate)}</span>}
             <button onClick={() => onDelete(item.id)}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px", opacity: 0.25, padding: "4px", color: "#ece4da" }}
               title="Delete">✕</button>
           </div>
         </div>
+        {editing && (
+          <div style={{ marginBottom: "12px", padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "10px" }}>
+            <CategoryPicker selected={editCats} onChange={setEditCats} />
+            <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+              <button onClick={() => setEditing(false)} style={{ ...S.btn(), fontSize: "12px", padding: "6px 14px" }}>Cancel</button>
+              <button onClick={saveEdit} style={{ ...S.btn("rgba(194,120,92,0.25)", "#c2785c"), fontSize: "12px", padding: "6px 14px", borderColor: "rgba(194,120,92,0.3)" }}>Save</button>
+            </div>
+          </div>
+        )}
 
         {/* embed */}
         {item.type === "embed" && item.embedUrl && (
@@ -172,7 +229,7 @@ function AddModal({ onClose, onSave }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [caption, setCaption] = useState("");
-  const [category, setCategory] = useState("lies");
+  const [categories, setCategories] = useState(["lies"]);
   const [nsfw, setNsfw] = useState(false);
   const [sourceDate, setSourceDate] = useState("");
   const [error, setError] = useState("");
@@ -214,7 +271,8 @@ function AddModal({ onClose, onSave }) {
       // Save to Firestore
       const docData = {
         type: mode,
-        category,
+        categories,
+        category: categories[0],
         nsfw,
         caption: caption.trim(),
         sourceDate: sourceDate || null,
@@ -283,11 +341,8 @@ function AddModal({ onClose, onSave }) {
         )}
 
         <div style={{ marginBottom: "16px" }}>
-          <label style={S.label}>Category</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}
-            style={{ ...S.input, cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center" }}>
-            {CATEGORIES.map((c) => <option key={c.id} value={c.id} style={{ background: "#1c1916", color: "#ece4da" }}>{c.icon} {c.label}</option>)}
-          </select>
+          <label style={S.label}>Categories (select one or more)</label>
+          <CategoryPicker selected={categories} onChange={setCategories} />
         </div>
 
         <div style={{ marginBottom: "16px" }}>
@@ -336,7 +391,7 @@ function TimelineView({ items, onDelete }) {
       <div style={{ position: "relative", paddingLeft: "36px" }}>
         {sorted.length > 0 && <div style={{ position: "absolute", left: "9px", top: "8px", bottom: "8px", width: "2px", background: "rgba(255,255,255,0.06)" }} />}
         {sorted.map((item, i) => {
-          const cat = CAT_MAP[item.category] || CAT_MAP.other;
+          const cat = CAT_MAP[getCats(item)[0]] || CAT_MAP.other;
           const prev = i > 0 ? sorted[i - 1].sourceDate : null;
           const cur = new Date(item.sourceDate);
           const prevDate = prev ? new Date(prev) : null;
@@ -413,20 +468,23 @@ export default function App() {
 
   /* search + filter */
   const filtered = items.filter((i) => {
-    if (filterCat !== "all" && i.category !== filterCat) return false;
+    const cats = getCats(i);
+    if (filterCat !== "all" && !cats.includes(filterCat)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       return (i.caption || "").toLowerCase().includes(q)
         || (i.url || "").toLowerCase().includes(q)
-        || (CAT_MAP[i.category]?.label || "").toLowerCase().includes(q);
+        || cats.some((id) => (CAT_MAP[id]?.label || "").toLowerCase().includes(q));
     }
     return true;
   });
 
-  /* group by category */
+  /* group by category — items with multiple categories appear under each */
   const grouped = {};
   CATEGORIES.forEach((c) => { grouped[c.id] = []; });
-  filtered.forEach((i) => { (grouped[i.category] || (grouped[i.category] = [])).push(i); });
+  filtered.forEach((i) => {
+    getCats(i).forEach((catId) => { (grouped[catId] || (grouped[catId] = [])).push(i); });
+  });
 
   if (loading) return (
     <div style={{ ...S.page, display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
@@ -503,7 +561,7 @@ export default function App() {
           {/* count bar */}
           <div style={{ display: "flex", gap: "12px", marginTop: "10px", flexWrap: "wrap" }}>
             {CATEGORIES.map((c) => {
-              const count = items.filter((i) => i.category === c.id).length;
+              const count = items.filter((i) => getCats(i).includes(c.id)).length;
               if (count === 0) return null;
               return (
                 <span key={c.id} onClick={() => { setFilterCat(c.id); setView("categories"); }}
