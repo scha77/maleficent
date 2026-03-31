@@ -33,62 +33,6 @@
   margin: 0 auto;
 }
 
-.searchRow {
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-  opacity: 0.3;
-}
-
-.searchInput {
-  width: 100%;
-  padding: 12px 36px 12px 38px;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  outline: none;
-  box-sizing: border-box;
-}
-
-.searchClose {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
-}
-
-.searchToggle {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.searchToggleBtn {
-  background: none;
-  border: 1px solid var(--border-faint);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 13px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
 .filterRow {
   display: flex;
   gap: 6px;

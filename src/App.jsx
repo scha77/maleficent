@@ -12,7 +12,6 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { CATEGORIES, CAT_MAP, getCats } from "./utils/categories.js";
-import { useDebounce } from "./utils/useDebounce.js";
 import TimelineView from "./components/TimelineView.jsx";
 import AddModal from "./components/AddModal.jsx";
 import Toast from "./components/Toast.jsx";
@@ -24,8 +23,6 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [filterCat, setFilterCat] = useState("all");
   const [fbError, setFbError] = useState(false);
   const [toast, setToast] = useState(null);
@@ -33,8 +30,6 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true);
   const undoRef = useRef(null);
   const sentinelRef = useRef(null);
-
-  const debouncedSearch = useDebounce(search, 250);
 
   /* real-time Firestore listener with pagination */
   useEffect(() => {
@@ -125,19 +120,9 @@ export default function App() {
       items.filter((i) => {
         const cats = getCats(i);
         if (filterCat !== "all" && !cats.includes(filterCat)) return false;
-        if (debouncedSearch.trim()) {
-          const q = debouncedSearch.toLowerCase();
-          return (
-            (i.caption || "").toLowerCase().includes(q) ||
-            (i.url || "").toLowerCase().includes(q) ||
-            cats.some((id) =>
-              (CAT_MAP[id]?.label || "").toLowerCase().includes(q)
-            )
-          );
-        }
         return true;
       }),
-    [items, filterCat, debouncedSearch]
+    [items, filterCat]
   );
 
   const catCounts = useMemo(() => {
@@ -187,46 +172,6 @@ export default function App() {
       {/* toolbar */}
       <div className={styles.toolbar} role="toolbar" aria-label="Evidence filters">
         <div className={styles.toolbarInner}>
-          {/* collapsible search */}
-          {searchOpen ? (
-            <div className={styles.searchRow}>
-              <span className={styles.searchIcon} aria-hidden="true">
-                &#x1F50D;
-              </span>
-              <input
-                autoFocus
-                className={styles.searchInput}
-                placeholder="Search evidence&hellip;"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={() => {
-                  if (!search) setSearchOpen(false);
-                }}
-                aria-label="Search evidence"
-              />
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setSearchOpen(false);
-                }}
-                className={styles.searchClose}
-                aria-label="Close search"
-              >
-                &#x2715;
-              </button>
-            </div>
-          ) : (
-            <div className={styles.searchToggle}>
-              <button
-                onClick={() => setSearchOpen(true)}
-                className={styles.searchToggleBtn}
-                aria-label="Open search"
-              >
-                &#x1F50D; Search
-              </button>
-            </div>
-          )}
-
           {/* category filter chips */}
           <div className={styles.filterRow} role="group" aria-label="Category filters">
             <button
