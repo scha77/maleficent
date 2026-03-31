@@ -82,6 +82,51 @@
   flex-shrink: 0;
 }
 
+.yearRow {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.yearChip {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  position: relative;
+}
+
+.yearChip::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  transition: width 0.2s;
+}
+
+.yearChipActive {
+  color: var(--accent);
+}
+
+.yearChipActive::after {
+  width: 60%;
+}
+
+.yearChipEmpty {
+  opacity: 0.25;
+  cursor: default;
+}
+
 .empty {
   text-align: center;
   padding: 64px 20px;

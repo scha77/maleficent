@@ -1,28 +1,39 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useImperativeHandle, forwardRef } from "react";
 import { CAT_MAP, getCats } from "../utils/categories.js";
 import EvidenceCard from "./EvidenceCard.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import styles from "../styles/TimelineView.module.css";
 
-export default function TimelineView({ items, onDelete }) {
-  const [activeYear, setActiveYear] = useState("");
-  const [sortAsc, setSortAsc] = useState(true);
+const TimelineView = forwardRef(function TimelineView(
+  { items, onDelete, onActiveYearChange },
+  ref
+) {
   const timelineRef = useRef();
 
   const sorted = useMemo(
     () =>
       [...items]
         .filter((i) => i.sourceDate)
-        .sort((a, b) =>
-          sortAsc
-            ? new Date(a.sourceDate) - new Date(b.sourceDate)
-            : new Date(b.sourceDate) - new Date(a.sourceDate)
-        ),
-    [items, sortAsc]
+        .sort((a, b) => new Date(a.sourceDate) - new Date(b.sourceDate)),
+    [items]
   );
   const noDate = useMemo(() => items.filter((i) => !i.sourceDate), [items]);
 
-  /* scroll-spy */
+  /* expose scrollToYear to parent */
+  useImperativeHandle(ref, () => ({
+    scrollToYear(year) {
+      if (!timelineRef.current) return;
+      const el = timelineRef.current.querySelector(
+        `[data-year-section="${year}"]`
+      );
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 120;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    },
+  }));
+
+  /* scroll-spy: report active year to parent */
   useEffect(() => {
     if (!timelineRef.current || sorted.length === 0) return;
     const els = timelineRef.current.querySelectorAll("[data-year]");
@@ -31,20 +42,24 @@ export default function TimelineView({ items, onDelete }) {
       (entries) => {
         const vis = entries.filter((e) => e.isIntersecting);
         if (vis.length > 0) {
-          vis.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-          setActiveYear(vis[0].target.dataset.year);
+          vis.sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+          );
+          onActiveYearChange?.(vis[0].target.dataset.year);
         }
       },
       { rootMargin: "-140px 0px -50% 0px" }
     );
     els.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [sorted.length]);
+  }, [sorted.length, onActiveYearChange]);
 
   /* initialize year */
   useEffect(() => {
-    if (sorted.length > 0 && !activeYear)
-      setActiveYear(String(new Date(sorted[0].sourceDate).getFullYear()));
+    if (sorted.length > 0)
+      onActiveYearChange?.(
+        String(new Date(sorted[0].sourceDate).getFullYear())
+      );
   }, [sorted.length]);
 
   /* count items per month/year */
@@ -70,29 +85,8 @@ export default function TimelineView({ items, onDelete }) {
         </p>
       )}
 
-      {/* sort toggle */}
-      {sorted.length > 1 && (
-        <div className={styles.sortToggle}>
-          <button
-            onClick={() => setSortAsc(!sortAsc)}
-            className={styles.sortBtn}
-            aria-label={sortAsc ? "Sort newest first" : "Sort oldest first"}
-          >
-            {sortAsc ? "Oldest first \u2191" : "Newest first \u2193"}
-          </button>
-        </div>
-      )}
-
-      {/* sticky year indicator */}
-      {activeYear && sorted.length > 0 && (
-        <div className={styles.stickyYear} aria-hidden="true">
-          <span className={styles.stickyYearText}>{activeYear}</span>
-        </div>
-      )}
-
       <div ref={timelineRef} className={styles.timeline}>
         {sorted.map((item, i) => {
-          const cat = CAT_MAP[getCats(item)[0]] || CAT_MAP.other;
           const cur = new Date(item.sourceDate);
           const prevDate =
             i > 0 ? new Date(sorted[i - 1].sourceDate) : null;
@@ -118,19 +112,13 @@ export default function TimelineView({ items, onDelete }) {
           }
 
           return (
-            <div key={item.id} data-year={cur.getFullYear()}>
-              {/* year divider */}
-              {showYear && (
-                <div
-                  className={styles.yearDivider}
-                  style={{ marginTop: i > 0 ? "40px" : "8px" }}
-                >
-                  <span className={styles.yearLabel}>
-                    {cur.getFullYear()}
-                  </span>
-                  <div className={styles.dividerLine} />
-                </div>
-              )}
+            <div
+              key={item.id}
+              data-year={cur.getFullYear()}
+              {...(showYear
+                ? { "data-year-section": cur.getFullYear() }
+                : {})}
+            >
               {/* gap indicator */}
               {gapLabel && !showYear && (
                 <div className={styles.gapIndicator}>
@@ -138,22 +126,13 @@ export default function TimelineView({ items, onDelete }) {
                 </div>
               )}
               {/* month header */}
-              {showMonth && !showYear && (
+              {showMonth && (
                 <div
-                  className={styles.monthHeaderStandard}
-                  style={{ marginTop: i > 0 ? "28px" : 0 }}
+                  className={styles.monthHeader}
+                  style={{ marginTop: i > 0 ? (showYear ? "40px" : "28px") : "8px" }}
                 >
                   {cur.toLocaleDateString("en-US", { month: "long" })}
-                  <span className={styles.monthCount}>
-                    {monthCounts[monthKey]} item
-                    {monthCounts[monthKey] > 1 ? "s" : ""}
-                  </span>
-                </div>
-              )}
-              {/* month header after year divider */}
-              {showYear && (
-                <div className={styles.monthHeaderAfterYear}>
-                  {cur.toLocaleDateString("en-US", { month: "long" })}
+                  {showYear && ` ${cur.getFullYear()}`}
                   <span className={styles.monthCount}>
                     {monthCounts[monthKey]} item
                     {monthCounts[monthKey] > 1 ? "s" : ""}
@@ -188,4 +167,6 @@ export default function TimelineView({ items, onDelete }) {
       )}
     </div>
   );
-}
+});
+
+export default TimelineView;

@@ -19,6 +19,8 @@ import styles from "./styles/App.module.css";
 
 const PAGE_SIZE = 50;
 
+const YEAR_RANGE = Array.from({ length: 2026 - 2019 + 1 }, (_, i) => String(2019 + i));
+
 export default function App() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +30,10 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [hasMore, setHasMore] = useState(true);
+  const [activeYear, setActiveYear] = useState("");
   const undoRef = useRef(null);
   const sentinelRef = useRef(null);
+  const timelineRef = useRef(null);
 
   /* real-time Firestore listener with pagination */
   useEffect(() => {
@@ -125,6 +129,14 @@ export default function App() {
     [items, filterCat]
   );
 
+  const yearSet = useMemo(() => {
+    const s = new Set();
+    filtered.forEach((i) => {
+      if (i.sourceDate) s.add(String(new Date(i.sourceDate).getFullYear()));
+    });
+    return s;
+  }, [filtered]);
+
   const catCounts = useMemo(() => {
     const counts = {};
     items.forEach((i) =>
@@ -213,6 +225,27 @@ export default function App() {
               + Add
             </button>
           </div>
+
+          {/* year nav */}
+          <div className={styles.yearRow} role="group" aria-label="Year navigation">
+            {YEAR_RANGE.map((y) => {
+              const hasItems = yearSet.has(y);
+              const isActive = activeYear === y;
+              return (
+                <button
+                  key={y}
+                  onClick={() => {
+                    if (hasItems) timelineRef.current?.scrollToYear(y);
+                  }}
+                  className={`${styles.yearChip} ${isActive ? styles.yearChipActive : ""} ${!hasItems ? styles.yearChipEmpty : ""}`}
+                  aria-pressed={isActive}
+                  aria-disabled={!hasItems}
+                >
+                  {y}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -228,7 +261,12 @@ export default function App() {
           </p>
         </div>
       ) : (
-        <TimelineView items={filtered} onDelete={handleDelete} />
+        <TimelineView
+          ref={timelineRef}
+          items={filtered}
+          onDelete={handleDelete}
+          onActiveYearChange={setActiveYear}
+        />
       )}
 
       {/* infinite scroll sentinel */}

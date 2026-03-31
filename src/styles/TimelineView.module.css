@@ -12,61 +12,8 @@
   font-size: 14px;
 }
 
-.sortToggle {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.sortBtn {
-  background: none;
-  border: 1px solid var(--border-faint);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 11px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-family: var(--font-sans);
-}
-
-.stickyYear {
-  position: sticky;
-  top: 130px;
-  height: 0;
-  overflow: visible;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.stickyYearText {
-  position: absolute;
-  right: calc(100% + 12px);
-  top: 0;
-  font-family: var(--font-serif);
-  font-size: 64px;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.04);
-  line-height: 1;
-  white-space: nowrap;
-  transition: opacity 0.3s;
-}
-
 .timeline {
   position: relative;
-}
-
-.yearDivider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.yearLabel {
-  font-family: var(--font-serif);
-  font-size: 28px;
-  font-weight: 300;
-  color: var(--text-faint);
 }
 
 .dividerLine {
@@ -93,15 +40,6 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 14px;
-}
-
-.monthHeaderAfterYear {
-  composes: monthHeader;
-  margin-left: 0;
-}
-
-.monthHeaderStandard {
-  composes: monthHeader;
 }
 
 .monthCount {
