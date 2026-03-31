@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, serverTimestamp,
 } from "firebase/firestore";
@@ -48,6 +48,38 @@ const extractEmbed = (url) => {
   } catch {}
   return null;
 };
+
+/* debounce hook */
+function useDebounce(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+/* image compression */
+function compressImage(file, maxWidth = 1600, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith("image/") || file.type === "image/gif") { resolve(file); return; }
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w <= maxWidth) { resolve(file); return; }
+      h = Math.round(h * (maxWidth / w));
+      w = maxWidth;
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        resolve(blob && blob.size < file.size ? new File([blob], file.name, { type: "image/webp" }) : file);
+      }, "image/webp", quality);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 /* ── shared styles ── */
 const S = {
@@ -121,6 +153,72 @@ function LazyEmbed({ children, style }) {
   );
 }
 
+/* ── Toast notification ── */
+function Toast({ message, onUndo, onDismiss }) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+  return (
+    <div style={{
+      position: "fixed", bottom: "96px", left: "50%", transform: "translateX(-50%)", zIndex: 300,
+      background: "rgba(28,25,22,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px",
+      padding: "12px 20px", display: "flex", alignItems: "center", gap: "14px",
+      boxShadow: "0 8px 30px rgba(0,0,0,0.5)", backdropFilter: "blur(12px)",
+    }}>
+      <span style={{ fontSize: "14px", color: "#ece4da" }}>{message}</span>
+      {onUndo && (
+        <button onClick={onUndo} style={{
+          background: "none", border: "1px solid rgba(194,120,92,0.4)", borderRadius: "8px",
+          color: "#c2785c", fontSize: "13px", padding: "4px 12px", cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+        }}>Undo</button>
+      )}
+    </div>
+  );
+}
+
+/* ── Image lightbox ── */
+function Lightbox({ src, onClose }) {
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 250, background: "rgba(0,0,0,0.9)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: "20px",
+      cursor: "zoom-out",
+    }}>
+      <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: "8px" }} />
+    </div>
+  );
+}
+
+/* ── URL preview card ── */
+function UrlPreview({ url }) {
+  const domain = (() => { try { return new URL(url).hostname.replace("www.", ""); } catch { return url; } })();
+  const isTwitter = domain.includes("x.com") || domain.includes("twitter.com");
+  return (
+    <a href={url} target="_blank" rel="noreferrer" style={{
+      display: "flex", alignItems: "center", gap: "12px", padding: "14px",
+      background: "rgba(255,255,255,0.03)", borderRadius: "10px", marginBottom: "12px",
+      textDecoration: "none", border: "1px solid rgba(255,255,255,0.05)", transition: "border-color .2s",
+    }}>
+      <div style={{
+        width: "36px", height: "36px", borderRadius: "8px", flexShrink: 0,
+        background: isTwitter ? "rgba(29,155,240,0.15)" : "rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px",
+      }}>{isTwitter ? "𝕏" : "🔗"}</div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: "13px", color: "#ece4da", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {isTwitter ? "View on X / Twitter" : domain}
+        </div>
+        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: "2px" }}>
+          {url}
+        </div>
+      </div>
+      <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "14px", flexShrink: 0 }}>→</span>
+    </a>
+  );
+}
+
 /* ── NSFW gate ── */
 function NsfwGate({ onReveal }) {
   return (
@@ -150,6 +248,7 @@ function EvidenceCard({ item, onDelete }) {
   const [editCaption, setEditCaption] = useState("");
   const [editingDate, setEditingDate] = useState(false);
   const [editDate, setEditDate] = useState("");
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const cats = getCats(item);
   const gated = item.nsfw && !revealed;
 
@@ -246,19 +345,17 @@ function EvidenceCard({ item, onDelete }) {
           )
         )}
         {item.type === "embed" && !item.embedUrl && item.url && (
-          <div style={{ padding: "20px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", marginBottom: "12px", textAlign: "center" }}>
-            <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#7a8fa6", fontSize: "14px", wordBreak: "break-all" }}>
-              🔗 {item.url}
-            </a>
-          </div>
+          <UrlPreview url={item.url} />
         )}
 
         {/* image */}
         {item.type === "image" && item.imageUrl && (
-          <div style={{ borderRadius: "10px", overflow: "hidden", marginBottom: "12px" }}>
+          <div style={{ borderRadius: "10px", overflow: "hidden", marginBottom: "12px", cursor: "zoom-in" }}
+            onClick={() => setLightboxSrc(item.imageUrl)}>
             <img src={item.imageUrl} alt="" style={{ width: "100%", display: "block", borderRadius: "10px" }} loading="lazy" />
           </div>
         )}
+        {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
 
         {/* caption */}
         {editingCaption ? (
@@ -288,7 +385,7 @@ function EvidenceCard({ item, onDelete }) {
 }
 
 /* ── Add Evidence Modal ── */
-function AddModal({ onClose, onSave }) {
+function AddModal({ onClose, existingUrls }) {
   const [mode, setMode] = useState("embed");
   const [url, setUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -300,6 +397,8 @@ function AddModal({ onClose, onSave }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
+
+  const isDuplicate = mode === "embed" && url.trim() && existingUrls.includes(url.trim());
 
   const handleFile = (e) => {
     const f = e.target.files?.[0];
@@ -322,11 +421,12 @@ function AddModal({ onClose, onSave }) {
     try {
       let imageUrl = null;
 
-      // Upload image to Firebase Storage
+      // Upload image to Firebase Storage (with compression)
       if (mode === "image" && imageFile) {
-        const fileName = `evidence/${Date.now()}_${imageFile.name}`;
+        const compressed = await compressImage(imageFile);
+        const fileName = `evidence/${Date.now()}_${compressed.name}`;
         const sRef = storageRef(storage, fileName);
-        await uploadBytes(sRef, imageFile);
+        await uploadBytes(sRef, compressed);
         imageUrl = await getDownloadURL(sRef);
       }
 
@@ -391,12 +491,15 @@ function AddModal({ onClose, onSave }) {
           <div style={{ marginBottom: "16px" }}>
             <label style={S.label}>Link (Instagram, TikTok, YouTube, X / Twitter)</label>
             <input style={S.input} placeholder="https://www.instagram.com/reel/..." value={url} onChange={(e) => { setUrl(e.target.value); setError(""); }} />
+            {isDuplicate && (
+              <p style={{ color: "#b08d57", fontSize: "12px", marginTop: "6px" }}>⚠ This URL has already been added.</p>
+            )}
           </div>
         )}
 
         {mode === "image" && (
           <div style={{ marginBottom: "16px" }}>
-            <label style={S.label}>Screenshot or image (max 10 MB)</label>
+            <label style={S.label}>Screenshot or image (max 10 MB, auto-compressed)</label>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
             <button onClick={() => fileRef.current?.click()} style={{ ...S.btn(), width: "100%", textAlign: "center", padding: "24px 14px" }}>
               {imageFile ? `✓ ${imageFile.name}` : "Tap to choose file"}
@@ -447,10 +550,11 @@ function TimelineView({ items, onDelete }) {
   const [sortAsc, setSortAsc] = useState(true);
   const timelineRef = useRef();
 
-  const sorted = [...items].filter((i) => i.sourceDate).sort((a, b) =>
-    sortAsc ? new Date(a.sourceDate) - new Date(b.sourceDate) : new Date(b.sourceDate) - new Date(a.sourceDate)
-  );
-  const noDate = items.filter((i) => !i.sourceDate);
+  const sorted = useMemo(() =>
+    [...items].filter((i) => i.sourceDate).sort((a, b) =>
+      sortAsc ? new Date(a.sourceDate) - new Date(b.sourceDate) : new Date(b.sourceDate) - new Date(a.sourceDate)
+    ), [items, sortAsc]);
+  const noDate = useMemo(() => items.filter((i) => !i.sourceDate), [items]);
 
   /* scroll-spy: track which year is at the top of the viewport */
   useEffect(() => {
@@ -475,6 +579,17 @@ function TimelineView({ items, onDelete }) {
   useEffect(() => {
     if (sorted.length > 0 && !activeYear) setActiveYear(String(new Date(sorted[0].sourceDate).getFullYear()));
   }, [sorted.length]);
+
+  /* count items per month/year for headers */
+  const monthCounts = useMemo(() => {
+    const counts = {};
+    sorted.forEach((item) => {
+      const d = new Date(item.sourceDate);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [sorted]);
 
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto", padding: "8px 16px 100px", position: "relative" }}>
@@ -523,11 +638,13 @@ function TimelineView({ items, onDelete }) {
           const prevDate = i > 0 ? new Date(sorted[i - 1].sourceDate) : null;
           const showYear = !prevDate || cur.getFullYear() !== prevDate.getFullYear();
           const showMonth = !prevDate || cur.getMonth() !== prevDate.getMonth() || cur.getFullYear() !== prevDate.getFullYear();
+          const monthKey = `${cur.getFullYear()}-${cur.getMonth()}`;
 
           /* gap indicator: show "X months" if >60 days between events */
           let gapLabel = null;
           if (prevDate) {
-            const diffDays = Math.floor((cur - prevDate) / (1000 * 60 * 60 * 24));
+            const diff = Math.abs(cur - prevDate);
+            const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
             if (diffDays > 60) {
               const months = Math.round(diffDays / 30);
               gapLabel = months >= 12 ? `${Math.round(months / 12)} yr gap` : `${months} mo gap`;
@@ -561,16 +678,24 @@ function TimelineView({ items, onDelete }) {
               {/* month header */}
               {showMonth && !showYear && (
                 <div style={{
+                  display: "flex", alignItems: "center", gap: "8px",
                   fontSize: "12px", color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: ".1em",
                   marginBottom: "14px", marginTop: i > 0 ? "28px" : 0, marginLeft: "-36px", paddingLeft: "36px",
-                }}>{cur.toLocaleDateString("en-US", { month: "long" })}</div>
+                }}>
+                  {cur.toLocaleDateString("en-US", { month: "long" })}
+                  <span style={{ fontSize: "10px", opacity: 0.5 }}>{monthCounts[monthKey]} item{monthCounts[monthKey] > 1 ? "s" : ""}</span>
+                </div>
               )}
               {/* month header after year divider */}
               {showYear && (
                 <div style={{
+                  display: "flex", alignItems: "center", gap: "8px",
                   fontSize: "12px", color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: ".1em",
                   marginBottom: "14px", marginLeft: "0",
-                }}>{cur.toLocaleDateString("en-US", { month: "long" })}</div>
+                }}>
+                  {cur.toLocaleDateString("en-US", { month: "long" })}
+                  <span style={{ fontSize: "10px", opacity: 0.5 }}>{monthCounts[monthKey]} item{monthCounts[monthKey] > 1 ? "s" : ""}</span>
+                </div>
               )}
               {/* card with emoji dot */}
               <div style={{ position: "relative", marginBottom: "20px" }}>
@@ -590,6 +715,7 @@ function TimelineView({ items, onDelete }) {
         <>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "48px 0 16px" }}>
             <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "18px", fontWeight: 300, color: "rgba(255,255,255,0.35)" }}>Undated</span>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)" }}>{noDate.length}</span>
             <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
           </div>
           <div style={{ display: "grid", gap: "14px" }}>{noDate.map((item) => <EvidenceCard key={item.id} item={item} onDelete={onDelete} />)}</div>
@@ -605,8 +731,13 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [filterCat, setFilterCat] = useState("all");
   const [fbError, setFbError] = useState(false);
+  const [toast, setToast] = useState(null);
+  const undoRef = useRef(null);
+
+  const debouncedSearch = useDebounce(search, 250);
 
   /* real-time Firestore listener */
   useEffect(() => {
@@ -630,28 +761,51 @@ export default function App() {
     return () => unsubscribe?.();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Remove this evidence?")) return;
+  /* toast-based delete with undo */
+  const handleDelete = useCallback(async (id) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    // Store full item data for undo
+    const { id: _id, ...data } = item;
+    undoRef.current = { id, data };
+
     try {
       await deleteDoc(doc(db, "evidence", id));
+      setToast({
+        message: "Evidence removed",
+        onUndo: async () => {
+          try {
+            await addDoc(collection(db, "evidence"), { ...undoRef.current.data, createdAt: serverTimestamp() });
+          } catch (err) { console.error("Undo error:", err); }
+          setToast(null);
+        },
+      });
     } catch (err) {
       console.error("Delete error:", err);
     }
-  };
+  }, [items]);
 
-  /* search + filter */
-  const filtered = items.filter((i) => {
+  /* search + filter (debounced + memoized) */
+  const existingUrls = useMemo(() => items.filter((i) => i.url).map((i) => i.url), [items]);
+
+  const filtered = useMemo(() => items.filter((i) => {
     const cats = getCats(i);
     if (filterCat !== "all" && !cats.includes(filterCat)) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       return (i.caption || "").toLowerCase().includes(q)
         || (i.url || "").toLowerCase().includes(q)
         || cats.some((id) => (CAT_MAP[id]?.label || "").toLowerCase().includes(q));
     }
     return true;
-  });
+  }), [items, filterCat, debouncedSearch]);
 
+  const catCounts = useMemo(() => {
+    const counts = {};
+    items.forEach((i) => getCats(i).forEach((c) => { counts[c] = (counts[c] || 0) + 1; }));
+    return counts;
+  }, [items]);
 
   if (loading) return (
     <div style={{ ...S.page, display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
@@ -697,12 +851,33 @@ export default function App() {
         borderBottom: "1px solid rgba(255,255,255,0.05)",
       }}>
         <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-          <div style={{ position: "relative", marginBottom: "10px" }}>
-            <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", opacity: 0.3 }}>🔍</span>
-            <input style={{ ...S.input, paddingLeft: "38px" }} placeholder="Search evidence…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+          {/* collapsible search */}
+          {searchOpen ? (
+            <div style={{ position: "relative", marginBottom: "10px" }}>
+              <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", opacity: 0.3 }}>🔍</span>
+              <input
+                autoFocus
+                style={{ ...S.input, paddingLeft: "38px", paddingRight: "36px" }}
+                placeholder="Search evidence…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onBlur={() => { if (!search) setSearchOpen(false); }}
+              />
+              <button onClick={() => { setSearch(""); setSearchOpen(false); }}
+                style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", fontSize: "16px", padding: "4px" }}>
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+              <button onClick={() => setSearchOpen(true)}
+                style={{ background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", color: "rgba(255,255,255,0.3)", fontSize: "13px", padding: "5px 10px", cursor: "pointer" }}>
+                🔍 Search
+              </button>
+            </div>
+          )}
           {/* category filter chips */}
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginBottom: "8px" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
             <button onClick={() => setFilterCat("all")}
               style={{
                 fontSize: "12px", padding: "5px 10px", borderRadius: "20px", cursor: "pointer", transition: "all .2s",
@@ -711,7 +886,7 @@ export default function App() {
                 border: `1px solid ${filterCat === "all" ? "rgba(194,120,92,0.3)" : "rgba(255,255,255,0.08)"}`,
               }}>All ({items.length})</button>
             {CATEGORIES.map((c) => {
-              const count = items.filter((i) => getCats(i).includes(c.id)).length;
+              const count = catCounts[c.id] || 0;
               if (count === 0) return null;
               const active = filterCat === c.id;
               return (
@@ -743,6 +918,9 @@ export default function App() {
         <TimelineView items={filtered} onDelete={handleDelete} />
       )}
 
+      {/* toast */}
+      {toast && <Toast message={toast.message} onUndo={toast.onUndo} onDismiss={() => setToast(null)} />}
+
       {/* mobile FAB */}
       <button onClick={() => setShowAdd(true)} style={{
         position: "fixed", bottom: "24px", right: "24px", zIndex: 80,
@@ -752,7 +930,7 @@ export default function App() {
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>+</button>
 
-      {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddModal onClose={() => setShowAdd(false)} existingUrls={existingUrls} />}
     </div>
   );
 }
