@@ -97,6 +97,30 @@ function CategoryPicker({ selected, onChange }) {
   );
 }
 
+/* ── Lazy iframe loader ── */
+function LazyEmbed({ children, style }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef();
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { rootMargin: "200px" },
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={style}>
+      {visible ? children : (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", minHeight: "120px", color: "rgba(255,255,255,0.15)", fontSize: "13px" }}>
+          Loading…
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── NSFW gate ── */
 function NsfwGate({ onReveal }) {
   return (
@@ -124,6 +148,8 @@ function EvidenceCard({ item, onDelete }) {
   const [editCats, setEditCats] = useState([]);
   const [editingCaption, setEditingCaption] = useState(false);
   const [editCaption, setEditCaption] = useState("");
+  const [editingDate, setEditingDate] = useState(false);
+  const [editDate, setEditDate] = useState("");
   const cats = getCats(item);
   const gated = item.nsfw && !revealed;
 
@@ -139,6 +165,13 @@ function EvidenceCard({ item, onDelete }) {
     try {
       await updateDoc(doc(db, "evidence", item.id), { caption: editCaption.trim() });
       setEditingCaption(false);
+    } catch (err) { console.error("Update error:", err); }
+  };
+  const startDateEdit = () => { setEditDate(item.sourceDate || ""); setEditingDate(true); };
+  const saveDateEdit = async () => {
+    try {
+      await updateDoc(doc(db, "evidence", item.id), { sourceDate: editDate || null });
+      setEditingDate(false);
     } catch (err) { console.error("Update error:", err); }
   };
 
@@ -164,7 +197,18 @@ function EvidenceCard({ item, onDelete }) {
               title="Edit categories">✎</button>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-            {item.sourceDate && <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>{fmt(item.sourceDate)}</span>}
+            {editingDate ? (
+              <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)}
+                  style={{ ...S.input, width: "auto", padding: "4px 8px", fontSize: "11px", colorScheme: "dark" }} />
+                <button onClick={saveDateEdit} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#c2785c", padding: "2px" }}>✓</button>
+                <button onClick={() => setEditingDate(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "rgba(255,255,255,0.3)", padding: "2px" }}>✕</button>
+              </div>
+            ) : (
+              <span onClick={startDateEdit} style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", cursor: "pointer" }} title="Edit date">
+                {item.sourceDate ? fmt(item.sourceDate) : <span style={{ fontStyle: "italic", opacity: 0.5 }}>+ date</span>}
+              </span>
+            )}
             <button onClick={() => onDelete(item.id)}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px", opacity: 0.25, padding: "4px", color: "#ece4da" }}
               title="Delete">✕</button>
@@ -183,22 +227,22 @@ function EvidenceCard({ item, onDelete }) {
         {/* embed */}
         {item.type === "embed" && item.embedUrl && (
           item.embedPlatform === "tiktok" ? (
-            <div style={{
+            <LazyEmbed style={{
               borderRadius: "10px", overflow: "hidden", marginBottom: "4px", background: "#000",
               marginLeft: "-14px", marginRight: "-14px", height: "750px",
             }}>
               <iframe src={item.embedUrl} style={{ width: "100%", height: "100%", border: "none" }}
-                scrolling="no" allowFullScreen allow="encrypted-media" loading="lazy" />
-            </div>
+                scrolling="no" allowFullScreen allow="encrypted-media" />
+            </LazyEmbed>
           ) : (
-            <div style={{
+            <LazyEmbed style={{
               borderRadius: "10px", overflow: "hidden", marginBottom: "4px", background: "#000",
               position: "relative", paddingBottom: "56.25%", height: 0,
               marginLeft: "-14px", marginRight: "-14px",
             }}>
               <iframe src={item.embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-                allowFullScreen allow="encrypted-media" loading="lazy" />
-            </div>
+                allowFullScreen allow="encrypted-media" />
+            </LazyEmbed>
           )
         )}
         {item.type === "embed" && !item.embedUrl && item.url && (
@@ -400,9 +444,12 @@ function AddModal({ onClose, onSave }) {
 /* ── Timeline View ── */
 function TimelineView({ items, onDelete }) {
   const [activeYear, setActiveYear] = useState("");
+  const [sortAsc, setSortAsc] = useState(true);
   const timelineRef = useRef();
 
-  const sorted = [...items].filter((i) => i.sourceDate).sort((a, b) => new Date(a.sourceDate) - new Date(b.sourceDate));
+  const sorted = [...items].filter((i) => i.sourceDate).sort((a, b) =>
+    sortAsc ? new Date(a.sourceDate) - new Date(b.sourceDate) : new Date(b.sourceDate) - new Date(a.sourceDate)
+  );
   const noDate = items.filter((i) => !i.sourceDate);
 
   /* scroll-spy: track which year is at the top of the viewport */
@@ -440,6 +487,20 @@ function TimelineView({ items, onDelete }) {
         <p style={{ color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "40px 0", fontSize: "14px" }}>
           No evidence with source dates yet. Add dates when submitting to see them here.
         </p>
+      )}
+
+      {/* sort toggle */}
+      {sorted.length > 1 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+          <button onClick={() => setSortAsc(!sortAsc)}
+            style={{
+              background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px",
+              color: "rgba(255,255,255,0.35)", fontSize: "11px", padding: "5px 10px", cursor: "pointer",
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+            {sortAsc ? "Oldest first ↑" : "Newest first ↓"}
+          </button>
+        </div>
       )}
 
       {/* sticky year indicator */}
