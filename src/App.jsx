@@ -116,14 +116,24 @@ function EvidenceCard({ item, onDelete }) {
 
         {/* embed */}
         {item.type === "embed" && item.embedUrl && (
-          <div style={{
-            borderRadius: "10px", overflow: "hidden", marginBottom: "8px", background: "#000",
-            position: "relative", paddingBottom: item.embedPlatform === "tiktok" ? "150%" : "56.25%", height: 0,
-            marginLeft: "-14px", marginRight: "-14px",
-          }}>
-            <iframe src={item.embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
-              scrolling="no" allowFullScreen allow="encrypted-media" loading="lazy" />
-          </div>
+          item.embedPlatform === "tiktok" ? (
+            <div style={{
+              borderRadius: "10px", overflow: "hidden", marginBottom: "4px", background: "#000",
+              marginLeft: "-14px", marginRight: "-14px", height: "750px",
+            }}>
+              <iframe src={item.embedUrl} style={{ width: "100%", height: "100%", border: "none" }}
+                scrolling="no" allowFullScreen allow="encrypted-media" loading="lazy" />
+            </div>
+          ) : (
+            <div style={{
+              borderRadius: "10px", overflow: "hidden", marginBottom: "4px", background: "#000",
+              position: "relative", paddingBottom: "56.25%", height: 0,
+              marginLeft: "-14px", marginRight: "-14px",
+            }}>
+              <iframe src={item.embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                allowFullScreen allow="encrypted-media" loading="lazy" />
+            </div>
+          )
         )}
         {item.type === "embed" && !item.embedUrl && item.url && (
           <div style={{ padding: "20px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", marginBottom: "12px", textAlign: "center" }}>
