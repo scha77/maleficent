@@ -143,11 +143,11 @@ function EvidenceCard({ item, onDelete }) {
             {cats.map((id) => {
               const c = CAT_MAP[id] || CAT_MAP.other;
               return (
-                <span key={id} style={{
-                  fontSize: "11px", padding: "4px 10px", borderRadius: "20px",
-                  background: `${c.color}18`, color: c.color, border: `1px solid ${c.color}33`,
-                  letterSpacing: ".04em",
-                }}>{c.icon} {c.label}</span>
+                <span key={id} title={c.label} style={{
+                  fontSize: "13px", padding: "3px 6px", borderRadius: "20px",
+                  background: `${c.color}18`, border: `1px solid ${c.color}33`,
+                  lineHeight: 1,
+                }}>{c.icon}</span>
               );
             })}
             <button onClick={startEdit}
@@ -383,7 +383,12 @@ function TimelineView({ items, onDelete }) {
 
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto", padding: "8px 16px 100px" }}>
-      {sorted.length === 0 && (
+      {items.length === 0 && (
+        <p style={{ color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "40px 0", fontSize: "14px" }}>
+          No results match your filter.
+        </p>
+      )}
+      {items.length > 0 && sorted.length === 0 && (
         <p style={{ color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "40px 0", fontSize: "14px" }}>
           No evidence with source dates yet. Add dates when submitting to see them here.
         </p>
@@ -429,7 +434,6 @@ function TimelineView({ items, onDelete }) {
 export default function App() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState("categories");
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("all");
@@ -479,12 +483,6 @@ export default function App() {
     return true;
   });
 
-  /* group by category — items with multiple categories appear under each */
-  const grouped = {};
-  CATEGORIES.forEach((c) => { grouped[c.id] = []; });
-  filtered.forEach((i) => {
-    getCats(i).forEach((catId) => { (grouped[catId] || (grouped[catId] = [])).push(i); });
-  });
 
   if (loading) return (
     <div style={{ ...S.page, display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
@@ -534,79 +532,46 @@ export default function App() {
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", opacity: 0.3 }}>🔍</span>
             <input style={{ ...S.input, paddingLeft: "38px" }} placeholder="Search evidence…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
-            style={{
-              ...S.input, width: "100%", fontSize: "13px", padding: "8px 30px 8px 12px", marginBottom: "8px",
-              cursor: "pointer", appearance: "none",
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
-            }}>
-            <option value="all" style={{ background: "#1c1916" }}>All categories</option>
-            {CATEGORIES.map((c) => <option key={c.id} value={c.id} style={{ background: "#1c1916" }}>{c.icon} {c.label}</option>)}
-          </select>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {[["categories", "▦ Categories"], ["timeline", "↕ Timeline"]].map(([v, lbl]) => (
-              <button key={v} onClick={() => setView(v)}
-                style={{
-                  ...S.btn(view === v ? "rgba(194,120,92,0.2)" : undefined, view === v ? "#c2785c" : undefined),
-                  fontSize: "13px", padding: "8px 14px", borderColor: view === v ? "rgba(194,120,92,.3)" : undefined,
-                }}>{lbl}</button>
-            ))}
-            <button onClick={() => setShowAdd(true)}
-              style={{ ...S.btn("rgba(194,120,92,0.25)", "#c2785c"), fontSize: "13px", padding: "8px 18px", borderColor: "rgba(194,120,92,0.3)", marginLeft: "auto" }}>
-              + Add
-            </button>
-          </div>
-
-          {/* count bar */}
-          <div style={{ display: "flex", gap: "12px", marginTop: "10px", flexWrap: "wrap" }}>
+          {/* category filter chips */}
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", marginBottom: "8px" }}>
+            <button onClick={() => setFilterCat("all")}
+              style={{
+                fontSize: "12px", padding: "5px 10px", borderRadius: "20px", cursor: "pointer", transition: "all .2s",
+                background: filterCat === "all" ? "rgba(194,120,92,0.2)" : "rgba(255,255,255,0.05)",
+                color: filterCat === "all" ? "#c2785c" : "rgba(255,255,255,0.4)",
+                border: `1px solid ${filterCat === "all" ? "rgba(194,120,92,0.3)" : "rgba(255,255,255,0.08)"}`,
+              }}>All ({items.length})</button>
             {CATEGORIES.map((c) => {
               const count = items.filter((i) => getCats(i).includes(c.id)).length;
               if (count === 0) return null;
+              const active = filterCat === c.id;
               return (
-                <span key={c.id} onClick={() => { setFilterCat(c.id); setView("categories"); }}
-                  style={{ fontSize: "11px", color: c.color, cursor: "pointer", opacity: 0.6 }}>
-                  {c.icon} {count}
-                </span>
+                <button key={c.id} onClick={() => setFilterCat(active ? "all" : c.id)}
+                  style={{
+                    fontSize: "12px", padding: "5px 10px", borderRadius: "20px", cursor: "pointer", transition: "all .2s",
+                    background: active ? `${c.color}25` : "rgba(255,255,255,0.05)",
+                    color: active ? c.color : "rgba(255,255,255,0.4)",
+                    border: `1px solid ${active ? `${c.color}44` : "rgba(255,255,255,0.08)"}`,
+                  }}>{c.icon} {c.label} ({count})</button>
               );
             })}
-            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginLeft: "auto" }}>
-              {items.length} total
-            </span>
+            <button onClick={() => setShowAdd(true)}
+              style={{ ...S.btn("rgba(194,120,92,0.25)", "#c2785c"), fontSize: "12px", padding: "5px 14px", borderColor: "rgba(194,120,92,0.3)", marginLeft: "auto" }}>
+              + Add
+            </button>
           </div>
         </div>
       </div>
 
       {/* content */}
-      {view === "timeline" ? (
-        <TimelineView items={filtered} onDelete={handleDelete} />
+      {items.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "64px 20px", animation: "fadeUp .6s ease" }}>
+          <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.4 }}>📎</div>
+          <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.35)", marginBottom: "8px", lineHeight: 1.6 }}>No evidence yet.</p>
+          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>Tap <strong style={{ color: "#c2785c" }}>+ Add</strong> to start building the case.</p>
+        </div>
       ) : (
-        <main style={{ maxWidth: "700px", margin: "0 auto", padding: "24px 16px 120px" }}>
-          {items.length === 0 && (
-            <div style={{ textAlign: "center", padding: "64px 20px", animation: "fadeUp .6s ease" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.4 }}>📎</div>
-              <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.35)", marginBottom: "8px", lineHeight: 1.6 }}>No evidence yet.</p>
-              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.25)", lineHeight: 1.6 }}>Tap <strong style={{ color: "#c2785c" }}>+ Add</strong> to start building the case.</p>
-            </div>
-          )}
-          {filtered.length === 0 && items.length > 0 && (
-            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.25)", padding: "48px 0" }}>No results match your search / filter.</p>
-          )}
-          {CATEGORIES.map((cat) => {
-            const ci = grouped[cat.id];
-            if (!ci || ci.length === 0) return null;
-            return (
-              <section key={cat.id} style={{ marginBottom: "40px", animation: "fadeUp .5s ease" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                  <span style={{ fontSize: "22px" }}>{cat.icon}</span>
-                  <h2 style={{ fontFamily: "'Newsreader', Georgia, serif", fontWeight: 400, fontSize: "22px", color: cat.color }}>{cat.label}</h2>
-                  <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)" }}>{ci.length}</span>
-                </div>
-                <div style={{ display: "grid", gap: "14px" }}>{ci.map((item) => <EvidenceCard key={item.id} item={item} onDelete={handleDelete} />)}</div>
-              </section>
-            );
-          })}
-        </main>
+        <TimelineView items={filtered} onDelete={handleDelete} />
       )}
 
       {/* mobile FAB */}
