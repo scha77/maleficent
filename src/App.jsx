@@ -122,6 +122,8 @@ function EvidenceCard({ item, onDelete }) {
   const [revealed, setRevealed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editCats, setEditCats] = useState([]);
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [editCaption, setEditCaption] = useState("");
   const cats = getCats(item);
   const gated = item.nsfw && !revealed;
 
@@ -130,6 +132,13 @@ function EvidenceCard({ item, onDelete }) {
     try {
       await updateDoc(doc(db, "evidence", item.id), { categories: editCats, category: editCats[0] });
       setEditing(false);
+    } catch (err) { console.error("Update error:", err); }
+  };
+  const startCaptionEdit = () => { setEditCaption(item.caption || ""); setEditingCaption(true); };
+  const saveCaptionEdit = async () => {
+    try {
+      await updateDoc(doc(db, "evidence", item.id), { caption: editCaption.trim() });
+      setEditingCaption(false);
     } catch (err) { console.error("Update error:", err); }
   };
 
@@ -208,8 +217,20 @@ function EvidenceCard({ item, onDelete }) {
         )}
 
         {/* caption */}
-        {item.caption && (
-          <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>{item.caption}</p>
+        {editingCaption ? (
+          <div style={{ marginBottom: "4px" }}>
+            <textarea value={editCaption} onChange={(e) => setEditCaption(e.target.value)} rows={3}
+              style={{ ...S.input, resize: "vertical", lineHeight: 1.5, fontSize: "14px" }} />
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+              <button onClick={() => setEditingCaption(false)} style={{ ...S.btn(), fontSize: "12px", padding: "6px 14px" }}>Cancel</button>
+              <button onClick={saveCaptionEdit} style={{ ...S.btn("rgba(194,120,92,0.25)", "#c2785c"), fontSize: "12px", padding: "6px 14px", borderColor: "rgba(194,120,92,0.3)" }}>Save</button>
+            </div>
+          </div>
+        ) : (
+          <p onClick={startCaptionEdit}
+            style={{ fontSize: "14px", color: "rgba(255,255,255,0.6)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", cursor: "pointer" }}>
+            {item.caption || <span style={{ color: "rgba(255,255,255,0.2)", fontStyle: "italic" }}>Add a caption…</span>}
+          </p>
         )}
 
         {/* footer */}
