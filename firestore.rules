@@ -7,7 +7,7 @@ service cloud.firestore {
     match /evidence/{docId} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasAll(['type', 'category', 'createdAt'])
-                    && request.resource.data.type in ['embed', 'image']
+                    && request.resource.data.type in ['embed', 'image', 'username']
                     && request.resource.data.category in [
                          'lies', 'manipulation', 'money',
                          'character', 'relationships', 'other'
