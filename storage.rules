@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Evidence image uploads
+    match /evidence/{fileName} {
+      // Anyone can view uploaded images
+      allow read: if true;
+
+      // Anyone can upload images under 10 MB, must be an image type
+      allow create: if request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+
+      // No overwriting or deleting via client (clean up manually in console if needed)
+      allow update, delete: if false;
+    }
+
+    // Block everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
