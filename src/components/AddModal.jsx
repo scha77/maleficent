@@ -46,7 +46,7 @@ export default function AddModal({ onClose, existingUrls }) {
   const [categories, setCategories] = useState(["lies"]);
   const [nsfw, setNsfw] = useState(false);
   const [sourceDate, setSourceDate] = useState("");
-  const [usernames, setUsernames] = useState("");
+  const [username, setUsername] = useState("@");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
@@ -92,6 +92,10 @@ export default function AddModal({ onClose, existingUrls }) {
       setError("Upload an image");
       return;
     }
+    if (mode === "username" && username.trim().length <= 1) {
+      setError("Enter a username");
+      return;
+    }
 
     if (!checkRateLimit()) {
       setError("You're adding too fast. Please wait a moment.");
@@ -102,6 +106,22 @@ export default function AddModal({ onClose, existingUrls }) {
     setError("");
 
     try {
+      if (mode === "username") {
+        await addDoc(collection(db, "evidence"), {
+          type: "username",
+          usernames: username.trim(),
+          categories: ["other"],
+          category: "other",
+          nsfw: false,
+          caption: "",
+          sourceDate: null,
+          createdAt: serverTimestamp(),
+        });
+        onClose();
+        setSaving(false);
+        return;
+      }
+
       let imageUrl = null;
 
       if (mode === "image" && imageFile) {
@@ -121,7 +141,6 @@ export default function AddModal({ onClose, existingUrls }) {
         nsfw,
         caption: caption.trim(),
         sourceDate: sourceDate || null,
-        usernames: usernames.trim() || null,
         createdAt: serverTimestamp(),
       };
 
@@ -165,6 +184,7 @@ export default function AddModal({ onClose, existingUrls }) {
           {[
             ["embed", "\u{1F517} Embed Link"],
             ["image", "\u{1F5BC} Upload Image"],
+            ["username", "\u{1F464} Add Username"],
           ].map(([m, lbl]) => (
             <button
               key={m}
@@ -233,103 +253,114 @@ export default function AddModal({ onClose, existingUrls }) {
           </div>
         )}
 
-        <div className={styles.field}>
-          <label className={styles.label}>Categories (select one or more)</label>
-          <CategoryPicker selected={categories} onChange={setCategories} />
-        </div>
+        {mode === "username" && (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="evidence-username">
+              Username
+            </label>
+            <input
+              id="evidence-username"
+              autoFocus
+              value={username}
+              onChange={(e) => {
+                const val = e.target.value;
+                setUsername(val.startsWith("@") ? val : "@" + val);
+                setError("");
+              }}
+              placeholder="@username"
+              className={styles.input}
+            />
+          </div>
+        )}
 
-        <div className={styles.field}>
-          <label className={styles.label}>
-            Source date (when did this originally happen?)
-          </label>
-          {(() => {
-            const parsed = parseSourceDate(sourceDate);
-            const currentYear = new Date().getFullYear();
-            const maxDay = daysInMonth(
-              Number(parsed.m) || 1,
-              Number(parsed.y) || currentYear
-            );
-            const updateDate = (y, m, d) => {
-              const clamped = Math.min(Number(d) || 0, daysInMonth(Number(m) || 1, Number(y) || currentYear));
-              setSourceDate(buildSourceDate(y, m, clamped || d));
-            };
-            return (
-              <div className={styles.dateSelects}>
-                <select
-                  value={parsed.m}
-                  onChange={(e) => updateDate(parsed.y, e.target.value, parsed.d)}
-                  className={styles.dateSelect}
-                  aria-label="Month"
-                >
-                  <option value="">Month</option>
-                  {MONTHS.map((name, i) => (
-                    <option key={i} value={i + 1}>{name}</option>
-                  ))}
-                </select>
-                <select
-                  value={parsed.d}
-                  onChange={(e) => updateDate(parsed.y, parsed.m, e.target.value)}
-                  className={styles.dateSelect}
-                  aria-label="Day"
-                >
-                  <option value="">Day</option>
-                  {Array.from({ length: maxDay }, (_, i) => (
-                    <option key={i} value={i + 1}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  value={parsed.y}
-                  onChange={(e) => updateDate(e.target.value, parsed.m, parsed.d)}
-                  className={styles.dateSelect}
-                  aria-label="Year"
-                >
-                  <option value="">Year</option>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const yr = currentYear - i;
-                    return <option key={yr} value={yr}>{yr}</option>;
-                  })}
-                </select>
-              </div>
-            );
-          })()}
-        </div>
+        {mode !== "username" && (
+          <>
+            <div className={styles.field}>
+              <label className={styles.label}>Categories (select one or more)</label>
+              <CategoryPicker selected={categories} onChange={setCategories} />
+            </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="evidence-caption">
-            Caption (optional)
-          </label>
-          <textarea
-            id="evidence-caption"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={3}
-            placeholder="Add context, explain what this shows&hellip;"
-            className={styles.textarea}
-          />
-        </div>
+            <div className={styles.field}>
+              <label className={styles.label}>
+                Source date (when did this originally happen?)
+              </label>
+              {(() => {
+                const parsed = parseSourceDate(sourceDate);
+                const currentYear = new Date().getFullYear();
+                const maxDay = daysInMonth(
+                  Number(parsed.m) || 1,
+                  Number(parsed.y) || currentYear
+                );
+                const updateDate = (y, m, d) => {
+                  const clamped = Math.min(Number(d) || 0, daysInMonth(Number(m) || 1, Number(y) || currentYear));
+                  setSourceDate(buildSourceDate(y, m, clamped || d));
+                };
+                return (
+                  <div className={styles.dateSelects}>
+                    <select
+                      value={parsed.m}
+                      onChange={(e) => updateDate(parsed.y, e.target.value, parsed.d)}
+                      className={styles.dateSelect}
+                      aria-label="Month"
+                    >
+                      <option value="">Month</option>
+                      {MONTHS.map((name, i) => (
+                        <option key={i} value={i + 1}>{name}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={parsed.d}
+                      onChange={(e) => updateDate(parsed.y, parsed.m, e.target.value)}
+                      className={styles.dateSelect}
+                      aria-label="Day"
+                    >
+                      <option value="">Day</option>
+                      {Array.from({ length: maxDay }, (_, i) => (
+                        <option key={i} value={i + 1}>{i + 1}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={parsed.y}
+                      onChange={(e) => updateDate(e.target.value, parsed.m, parsed.d)}
+                      className={styles.dateSelect}
+                      aria-label="Year"
+                    >
+                      <option value="">Year</option>
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const yr = currentYear - i;
+                        return <option key={yr} value={yr}>{yr}</option>;
+                      })}
+                    </select>
+                  </div>
+                );
+              })()}
+            </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="evidence-usernames">
-            Usernames (optional)
-          </label>
-          <input
-            id="evidence-usernames"
-            value={usernames}
-            onChange={(e) => setUsernames(e.target.value)}
-            placeholder="@user1, @user2"
-            className={styles.input}
-          />
-        </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="evidence-caption">
+                Caption (optional)
+              </label>
+              <textarea
+                id="evidence-caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={3}
+                placeholder="Add context, explain what this shows&hellip;"
+                className={styles.textarea}
+              />
+            </div>
 
-        <label className={styles.nsfwLabel}>
-          <input
-            type="checkbox"
-            checked={nsfw}
-            onChange={(e) => setNsfw(e.target.checked)}
-            className={styles.nsfwCheckbox}
-          />
-          Mark as NSFW / sensitive content
-        </label>
+            <label className={styles.nsfwLabel}>
+              <input
+                type="checkbox"
+                checked={nsfw}
+                onChange={(e) => setNsfw(e.target.checked)}
+                className={styles.nsfwCheckbox}
+              />
+              Mark as NSFW / sensitive content
+            </label>
+          </>
+        )}
 
         {error && (
           <p className={styles.error} role="alert">
@@ -346,7 +377,7 @@ export default function AddModal({ onClose, existingUrls }) {
             disabled={saving}
             className={styles.saveBtn}
           >
-            {saving ? "Uploading\u2026" : "Add evidence"}
+            {saving ? "Saving\u2026" : mode === "username" ? "Add username" : "Add evidence"}
           </button>
         </div>
       </div>
