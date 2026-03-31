@@ -399,11 +399,38 @@ function AddModal({ onClose, onSave }) {
 
 /* ── Timeline View ── */
 function TimelineView({ items, onDelete }) {
+  const [activeYear, setActiveYear] = useState("");
+  const timelineRef = useRef();
+
   const sorted = [...items].filter((i) => i.sourceDate).sort((a, b) => new Date(a.sourceDate) - new Date(b.sourceDate));
   const noDate = items.filter((i) => !i.sourceDate);
 
+  /* scroll-spy: track which year is at the top of the viewport */
+  useEffect(() => {
+    if (!timelineRef.current || sorted.length === 0) return;
+    const els = timelineRef.current.querySelectorAll("[data-year]");
+    if (els.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const vis = entries.filter((e) => e.isIntersecting);
+        if (vis.length > 0) {
+          vis.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          setActiveYear(vis[0].target.dataset.year);
+        }
+      },
+      { rootMargin: "-140px 0px -50% 0px" },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [sorted.length]);
+
+  /* initialize year */
+  useEffect(() => {
+    if (sorted.length > 0 && !activeYear) setActiveYear(String(new Date(sorted[0].sourceDate).getFullYear()));
+  }, [sorted.length]);
+
   return (
-    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "8px 16px 100px" }}>
+    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "8px 16px 100px", position: "relative" }}>
       {items.length === 0 && (
         <p style={{ color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "40px 0", fontSize: "14px" }}>
           No results match your filter.
@@ -414,27 +441,84 @@ function TimelineView({ items, onDelete }) {
           No evidence with source dates yet. Add dates when submitting to see them here.
         </p>
       )}
-      <div style={{ position: "relative", paddingLeft: "36px" }}>
-        {sorted.length > 0 && <div style={{ position: "absolute", left: "9px", top: "8px", bottom: "8px", width: "2px", background: "rgba(255,255,255,0.06)" }} />}
+
+      {/* sticky year indicator */}
+      {activeYear && sorted.length > 0 && (
+        <div style={{ position: "sticky", top: "130px", height: 0, overflow: "visible", zIndex: 10, pointerEvents: "none" }}>
+          <span style={{
+            position: "absolute", right: "calc(100% + 12px)", top: 0,
+            fontFamily: "'Newsreader', Georgia, serif", fontSize: "64px", fontWeight: 300,
+            color: "rgba(255,255,255,0.04)", lineHeight: 1, whiteSpace: "nowrap",
+            transition: "opacity .3s",
+          }}>{activeYear}</span>
+        </div>
+      )}
+
+      <div ref={timelineRef} style={{ position: "relative", paddingLeft: "36px" }}>
+        {sorted.length > 0 && <div style={{ position: "absolute", left: "11px", top: "8px", bottom: "8px", width: "2px", background: "rgba(255,255,255,0.06)", borderRadius: "1px" }} />}
         {sorted.map((item, i) => {
           const cat = CAT_MAP[getCats(item)[0]] || CAT_MAP.other;
-          const prev = i > 0 ? sorted[i - 1].sourceDate : null;
           const cur = new Date(item.sourceDate);
-          const prevDate = prev ? new Date(prev) : null;
+          const prevDate = i > 0 ? new Date(sorted[i - 1].sourceDate) : null;
+          const showYear = !prevDate || cur.getFullYear() !== prevDate.getFullYear();
           const showMonth = !prevDate || cur.getMonth() !== prevDate.getMonth() || cur.getFullYear() !== prevDate.getFullYear();
+
+          /* gap indicator: show "X months" if >60 days between events */
+          let gapLabel = null;
+          if (prevDate) {
+            const diffDays = Math.floor((cur - prevDate) / (1000 * 60 * 60 * 24));
+            if (diffDays > 60) {
+              const months = Math.round(diffDays / 30);
+              gapLabel = months >= 12 ? `${Math.round(months / 12)} yr gap` : `${months} mo gap`;
+            }
+          }
+
           return (
-            <div key={item.id}>
-              {showMonth && (
+            <div key={item.id} data-year={cur.getFullYear()}>
+              {/* year divider */}
+              {showYear && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "12px",
+                  marginTop: i > 0 ? "40px" : "8px", marginBottom: "20px", marginLeft: "-36px", paddingLeft: "4px",
+                }}>
+                  <span style={{
+                    fontFamily: "'Newsreader', Georgia, serif", fontSize: "28px", fontWeight: 300,
+                    color: "rgba(255,255,255,0.15)",
+                  }}>{cur.getFullYear()}</span>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                </div>
+              )}
+              {/* gap indicator */}
+              {gapLabel && !showYear && (
+                <div style={{
+                  textAlign: "center", margin: "16px 0", marginLeft: "-36px",
+                  fontSize: "10px", color: "rgba(255,255,255,0.15)", textTransform: "uppercase", letterSpacing: ".12em",
+                }}>
+                  ···  {gapLabel}  ···
+                </div>
+              )}
+              {/* month header */}
+              {showMonth && !showYear && (
                 <div style={{
                   fontSize: "12px", color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: ".1em",
-                  marginBottom: "14px", marginTop: i > 0 ? "32px" : 0, marginLeft: "-36px", paddingLeft: "36px",
-                }}>{cur.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
+                  marginBottom: "14px", marginTop: i > 0 ? "28px" : 0, marginLeft: "-36px", paddingLeft: "36px",
+                }}>{cur.toLocaleDateString("en-US", { month: "long" })}</div>
               )}
+              {/* month header after year divider */}
+              {showYear && (
+                <div style={{
+                  fontSize: "12px", color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: ".1em",
+                  marginBottom: "14px", marginLeft: "0",
+                }}>{cur.toLocaleDateString("en-US", { month: "long" })}</div>
+              )}
+              {/* card with emoji dot */}
               <div style={{ position: "relative", marginBottom: "20px" }}>
                 <div style={{
-                  position: "absolute", left: "-36px", top: "22px", width: "16px", height: "16px",
-                  borderRadius: "50%", background: `${cat.color}33`, border: `2px solid ${cat.color}`, zIndex: 2,
-                }} />
+                  position: "absolute", left: "-36px", top: "18px", width: "24px", height: "24px",
+                  borderRadius: "50%", background: `${cat.color}22`, border: `1.5px solid ${cat.color}44`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "12px", zIndex: 2,
+                }}>{cat.icon}</div>
                 <EvidenceCard item={item} onDelete={onDelete} />
               </div>
             </div>
@@ -443,7 +527,10 @@ function TimelineView({ items, onDelete }) {
       </div>
       {noDate.length > 0 && (
         <>
-          <h3 style={{ fontFamily: "'Newsreader', Georgia, serif", fontWeight: 300, fontSize: "18px", margin: "48px 0 16px", color: "rgba(255,255,255,0.35)" }}>Undated</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "48px 0 16px" }}>
+            <span style={{ fontFamily: "'Newsreader', Georgia, serif", fontSize: "18px", fontWeight: 300, color: "rgba(255,255,255,0.35)" }}>Undated</span>
+            <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+          </div>
           <div style={{ display: "grid", gap: "14px" }}>{noDate.map((item) => <EvidenceCard key={item.id} item={item} onDelete={onDelete} />)}</div>
         </>
       )}
