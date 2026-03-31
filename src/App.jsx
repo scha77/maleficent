@@ -118,7 +118,7 @@ function EvidenceCard({ item, onDelete }) {
         {item.type === "embed" && item.embedUrl && (
           <div style={{
             borderRadius: "10px", overflow: "hidden", marginBottom: "8px", background: "#000",
-            position: "relative", paddingBottom: item.embedPlatform === "tiktok" ? "120%" : "56.25%", height: 0,
+            position: "relative", paddingBottom: item.embedPlatform === "tiktok" ? "150%" : "56.25%", height: 0,
             marginLeft: "-14px", marginRight: "-14px",
           }}>
             <iframe src={item.embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
