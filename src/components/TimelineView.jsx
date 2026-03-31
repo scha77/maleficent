@@ -91,7 +91,6 @@ export default function TimelineView({ items, onDelete }) {
       )}
 
       <div ref={timelineRef} className={styles.timeline}>
-        {sorted.length > 0 && <div className={styles.timelineLine} />}
         {sorted.map((item, i) => {
           const cat = CAT_MAP[getCats(item)[0]] || CAT_MAP.other;
           const cur = new Date(item.sourceDate);
@@ -161,18 +160,7 @@ export default function TimelineView({ items, onDelete }) {
                   </span>
                 </div>
               )}
-              {/* card with emoji dot */}
               <div className={styles.cardWrapper}>
-                <div
-                  className={styles.timelineDot}
-                  style={{
-                    background: `${cat.color}22`,
-                    border: `1.5px solid ${cat.color}44`,
-                  }}
-                  aria-hidden="true"
-                >
-                  {cat.icon}
-                </div>
                 <ErrorBoundary>
                   <EvidenceCard item={item} onDelete={onDelete} />
                 </ErrorBoundary>
