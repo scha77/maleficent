@@ -16,6 +16,40 @@ import { checkRateLimit } from "../utils/rateLimit.js";
 import CategoryPicker from "./CategoryPicker.jsx";
 import styles from "../styles/AddModal.module.css";
 
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function getDateShortcuts() {
+  const today = new Date();
+  const shortcuts = [
+    { label: "Today", value: formatDate(today) },
+    {
+      label: "Yesterday",
+      value: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)),
+    },
+  ];
+  for (let i = 2; i <= 4; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    shortcuts.push({
+      label: d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+      value: formatDate(d),
+    });
+  }
+  shortcuts.push({
+    label: "1 week ago",
+    value: formatDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)),
+  });
+  shortcuts.push({
+    label: "1 month ago",
+    value: formatDate(new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())),
+  });
+  return shortcuts;
+}
+
 export default function AddModal({ onClose, existingUrls }) {
   const [mode, setMode] = useState("embed");
   const [url, setUrl] = useState("");
@@ -219,13 +253,34 @@ export default function AddModal({ onClose, existingUrls }) {
           <label className={styles.label} htmlFor="evidence-date">
             Source date (when did this originally happen?)
           </label>
-          <input
-            id="evidence-date"
-            type="date"
-            value={sourceDate}
-            onChange={(e) => setSourceDate(e.target.value)}
-            className={styles.dateInput}
-          />
+          <div className={styles.dateShortcuts}>
+            {getDateShortcuts().map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() =>
+                  setSourceDate(sourceDate === s.value ? "" : s.value)
+                }
+                className={
+                  sourceDate === s.value
+                    ? styles.dateShortcutActive
+                    : styles.dateShortcut
+                }
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className={styles.dateExact}>
+            <span className={styles.dateExactLabel}>or pick:</span>
+            <input
+              id="evidence-date"
+              type="date"
+              value={sourceDate}
+              onChange={(e) => setSourceDate(e.target.value)}
+              className={styles.dateExactInput}
+            />
+          </div>
         </div>
 
         <div className={styles.field}>

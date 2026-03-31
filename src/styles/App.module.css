@@ -92,8 +92,16 @@
 .filterRow {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.filterRow::-webkit-scrollbar {
+  display: none;
 }
 
 .filterChip {
@@ -105,6 +113,8 @@
   border: 1px solid var(--border-faint);
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filterChipActive {
@@ -124,6 +134,8 @@
   color: var(--accent);
   transition: all 0.2s;
   margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .empty {
