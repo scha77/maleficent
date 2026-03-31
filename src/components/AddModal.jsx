@@ -13,6 +13,7 @@ import { db, storage } from "../firebase.js";
 import { extractEmbed } from "../utils/helpers.js";
 import { compressImage } from "../utils/compressImage.js";
 import { checkRateLimit } from "../utils/rateLimit.js";
+import { PLATFORMS } from "../utils/platforms.js";
 import CategoryPicker from "./CategoryPicker.jsx";
 import styles from "../styles/AddModal.module.css";
 
@@ -47,6 +48,7 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
   const [nsfw, setNsfw] = useState(false);
   const [sourceDate, setSourceDate] = useState("");
   const [username, setUsername] = useState("@");
+  const [platforms, setPlatforms] = useState([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
@@ -101,6 +103,10 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
       setError("Enter a username");
       return;
     }
+    if (mode === "username" && platforms.length === 0) {
+      setError("Select at least one platform");
+      return;
+    }
     if (mode === "username" && isUsernameDuplicate) {
       setError("This username has already been added.");
       return;
@@ -119,6 +125,7 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
         await addDoc(collection(db, "evidence"), {
           type: "username",
           usernames: username.trim(),
+          platforms,
           categories: ["other"],
           category: "other",
           nsfw: false,
@@ -263,28 +270,59 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
         )}
 
         {mode === "username" && (
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="evidence-username">
-              Username
-            </label>
-            <input
-              id="evidence-username"
-              autoFocus
-              value={username}
-              onChange={(e) => {
-                const val = e.target.value;
-                setUsername(val.startsWith("@") ? val : "@" + val);
-                setError("");
-              }}
-              placeholder="@username"
-              className={styles.input}
-            />
-            {isUsernameDuplicate && (
-              <p className={styles.dupeWarningRed} role="alert">
-                This username has already been added.
-              </p>
-            )}
-          </div>
+          <>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="evidence-username">
+                Username
+              </label>
+              <input
+                id="evidence-username"
+                autoFocus
+                value={username}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setUsername(val.startsWith("@") ? val : "@" + val);
+                  setError("");
+                }}
+                placeholder="@username"
+                className={styles.input}
+              />
+              {isUsernameDuplicate && (
+                <p className={styles.dupeWarningRed} role="alert">
+                  This username has already been added.
+                </p>
+              )}
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label}>Platforms</label>
+              <div className={styles.platformPicker}>
+                {PLATFORMS.map((p) => {
+                  const active = platforms.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setPlatforms((prev) =>
+                          active ? prev.filter((x) => x !== p.id) : [...prev, p.id]
+                        );
+                        setError("");
+                      }}
+                      className={styles.platformChip}
+                      style={
+                        active
+                          ? { background: `${p.color}20`, color: p.color, borderColor: `${p.color}44` }
+                          : undefined
+                      }
+                      aria-pressed={active}
+                    >
+                      {p.short}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         {mode !== "username" && (

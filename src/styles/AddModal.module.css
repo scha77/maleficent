@@ -210,3 +210,28 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ── Platform picker ── */
+.platformPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.platformChip {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-faint);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  transition: all 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.platformChip:hover {
+  border-color: var(--border-subtle);
+}

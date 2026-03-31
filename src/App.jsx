@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase.js";
 import { CATEGORIES, CAT_MAP, getCats } from "./utils/categories.js";
+import { PLATFORM_MAP, cleanHandle } from "./utils/platforms.js";
 import TimelineView from "./components/TimelineView.jsx";
 import AddModal from "./components/AddModal.jsx";
 import Toast from "./components/Toast.jsx";
@@ -286,18 +287,41 @@ export default function App() {
           </button>
           {showUsernames && (
             <div className={styles.usernameList}>
-              {usernameItems.map((u) => (
-                <span key={u.id} className={styles.usernameTag}>
-                  {u.usernames}
-                  <button
-                    className={styles.usernameRemove}
-                    onClick={() => handleDelete(u.id)}
-                    aria-label={`Remove ${u.usernames}`}
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
+              {usernameItems.map((u) => {
+                const handle = cleanHandle(u.usernames);
+                const plats = u.platforms || [];
+                return (
+                  <div key={u.id} className={styles.usernameRow}>
+                    <span className={styles.usernameHandle}>{u.usernames}</span>
+                    <span className={styles.platformBadges}>
+                      {plats.map((pid) => {
+                        const p = PLATFORM_MAP[pid];
+                        if (!p) return null;
+                        return (
+                          <a
+                            key={pid}
+                            href={p.url(handle)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.platformBadge}
+                            style={{ color: p.color, borderColor: `${p.color}44` }}
+                            title={`${u.usernames} on ${p.label}`}
+                          >
+                            {p.short}
+                          </a>
+                        );
+                      })}
+                    </span>
+                    <button
+                      className={styles.usernameRemove}
+                      onClick={() => handleDelete(u.id)}
+                      aria-label={`Remove ${u.usernames}`}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

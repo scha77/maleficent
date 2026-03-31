@@ -272,22 +272,46 @@
 
 .usernameList {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 0 4px;
 }
 
-.usernameTag {
-  display: inline-flex;
+.usernameRow {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-faint);
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.usernameHandle {
+  font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-sans);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.platformBadges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.platformBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  line-height: 1.4;
+}
+
+.platformBadge:hover {
+  opacity: 0.7;
 }
 
 .usernameRemove {
@@ -297,8 +321,10 @@
   cursor: pointer;
   font-size: 13px;
   line-height: 1;
-  padding: 0 1px;
+  padding: 0 2px;
+  margin-left: auto;
   transition: color 0.2s;
+  flex-shrink: 0;
 }
 
 .usernameRemove:hover {
