@@ -262,7 +262,12 @@ export default function EvidenceCard({ item, onDelete }) {
         {/* footer */}
         <div className={styles.footer}>
           <span>Added {item.createdAt ? fmt(item.createdAt) : "just now"}</span>
-          {item.nsfw && <span className={styles.nsfwLabel}>NSFW</span>}
+          <div className={styles.footerRight}>
+            {item.usernames && (
+              <span className={styles.usernames}>{item.usernames}</span>
+            )}
+            {item.nsfw && <span className={styles.nsfwLabel}>NSFW</span>}
+          </div>
         </div>
       </div>
     </div>

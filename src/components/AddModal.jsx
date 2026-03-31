@@ -46,6 +46,7 @@ export default function AddModal({ onClose, existingUrls }) {
   const [categories, setCategories] = useState(["lies"]);
   const [nsfw, setNsfw] = useState(false);
   const [sourceDate, setSourceDate] = useState("");
+  const [usernames, setUsernames] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef();
@@ -120,6 +121,7 @@ export default function AddModal({ onClose, existingUrls }) {
         nsfw,
         caption: caption.trim(),
         sourceDate: sourceDate || null,
+        usernames: usernames.trim() || null,
         createdAt: serverTimestamp(),
       };
 
@@ -303,6 +305,19 @@ export default function AddModal({ onClose, existingUrls }) {
             rows={3}
             placeholder="Add context, explain what this shows&hellip;"
             className={styles.textarea}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="evidence-usernames">
+            Usernames (optional)
+          </label>
+          <input
+            id="evidence-usernames"
+            value={usernames}
+            onChange={(e) => setUsernames(e.target.value)}
+            placeholder="@user1, @user2"
+            className={styles.input}
           />
         </div>
 

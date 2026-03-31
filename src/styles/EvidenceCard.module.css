@@ -253,6 +253,21 @@
   color: var(--text-faint);
 }
 
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usernames {
+  color: var(--text-dim);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
 .nsfwLabel {
   color: var(--nsfw-color);
 }
