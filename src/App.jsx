@@ -476,17 +476,17 @@ export default function App() {
             <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "14px", opacity: 0.3 }}>🔍</span>
             <input style={{ ...S.input, paddingLeft: "38px" }} placeholder="Search evidence…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-            <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
-              style={{
-                ...S.input, width: "auto", flex: "1 1 150px", fontSize: "13px", padding: "8px 30px 8px 12px",
-                cursor: "pointer", appearance: "none",
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
-                backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
-              }}>
-              <option value="all" style={{ background: "#1c1916" }}>All categories</option>
-              {CATEGORIES.map((c) => <option key={c.id} value={c.id} style={{ background: "#1c1916" }}>{c.icon} {c.label}</option>)}
-            </select>
+          <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
+            style={{
+              ...S.input, width: "100%", fontSize: "13px", padding: "8px 30px 8px 12px", marginBottom: "8px",
+              cursor: "pointer", appearance: "none",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
+            }}>
+            <option value="all" style={{ background: "#1c1916" }}>All categories</option>
+            {CATEGORIES.map((c) => <option key={c.id} value={c.id} style={{ background: "#1c1916" }}>{c.icon} {c.label}</option>)}
+          </select>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {[["categories", "▦ Categories"], ["timeline", "↕ Timeline"]].map(([v, lbl]) => (
               <button key={v} onClick={() => setView(v)}
                 style={{
