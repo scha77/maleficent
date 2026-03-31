@@ -98,7 +98,7 @@ function EvidenceCard({ item, onDelete }) {
   return (
     <div style={{ ...S.glass, padding: 0, overflow: "hidden", position: "relative" }}>
       {gated && <NsfwGate onReveal={() => setRevealed(true)} />}
-      <div style={{ padding: "18px 20px 14px", filter: gated ? "blur(12px)" : "none", transition: "filter .3s" }}>
+      <div style={{ padding: "14px 14px 10px", filter: gated ? "blur(12px)" : "none", transition: "filter .3s" }}>
         {/* header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
           <span style={{
@@ -117,8 +117,8 @@ function EvidenceCard({ item, onDelete }) {
         {/* embed */}
         {item.type === "embed" && item.embedUrl && (
           <div style={{
-            borderRadius: "10px", overflow: "hidden", marginBottom: "12px", background: "#000",
-            position: "relative", paddingBottom: item.embedPlatform === "tiktok" ? "177%" : "56.25%", height: 0,
+            borderRadius: "10px", overflow: "hidden", marginBottom: "8px", background: "#000",
+            position: "relative", paddingBottom: item.embedPlatform === "tiktok" ? "120%" : "56.25%", height: 0,
           }}>
             <iframe src={item.embedUrl} style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
               allowFullScreen allow="encrypted-media" loading="lazy" />
