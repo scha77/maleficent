@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Evidence collection — anyone can read, add, and delete
+    match /evidence/{docId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['type', 'category', 'createdAt'])
+                    && request.resource.data.type in ['embed', 'image']
+                    && request.resource.data.category in [
+                         'lies', 'manipulation', 'money',
+                         'character', 'relationships', 'other'
+                       ]
+                    && request.resource.data.size() <= 15;
+      allow delete: if true;
+      allow update: if false; // no editing, only add or remove
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
