@@ -14,7 +14,8 @@ service cloud.firestore {
                        ]
                     && request.resource.data.size() <= 15;
       allow delete: if true;
-      allow update: if false; // no editing, only add or remove
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['categories', 'category']);
     }
 
     // Block everything else
