@@ -121,6 +121,12 @@
   margin-top: 6px;
 }
 
+.dupeWarningRed {
+  color: #d9534f;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
 .fileInput {
   display: none;
 }

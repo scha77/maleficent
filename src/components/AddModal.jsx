@@ -37,7 +37,7 @@ function parseSourceDate(dateStr) {
   return { y, m: String(Number(m)), d: String(Number(d)) };
 }
 
-export default function AddModal({ onClose, existingUrls }) {
+export default function AddModal({ onClose, existingUrls, existingUsernames }) {
   const [mode, setMode] = useState("embed");
   const [url, setUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -54,6 +54,11 @@ export default function AddModal({ onClose, existingUrls }) {
 
   const isDuplicate =
     mode === "embed" && url.trim() && existingUrls.includes(url.trim());
+
+  const isUsernameDuplicate =
+    mode === "username" &&
+    username.trim().length > 1 &&
+    existingUsernames.includes(username.trim().toLowerCase());
 
   // Focus trap & Escape to close
   const handleKeyDown = useCallback(
@@ -94,6 +99,10 @@ export default function AddModal({ onClose, existingUrls }) {
     }
     if (mode === "username" && username.trim().length <= 1) {
       setError("Enter a username");
+      return;
+    }
+    if (mode === "username" && isUsernameDuplicate) {
+      setError("This username has already been added.");
       return;
     }
 
@@ -270,6 +279,11 @@ export default function AddModal({ onClose, existingUrls }) {
               placeholder="@username"
               className={styles.input}
             />
+            {isUsernameDuplicate && (
+              <p className={styles.dupeWarningRed} role="alert">
+                This username has already been added.
+              </p>
+            )}
           </div>
         )}
 

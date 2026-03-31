@@ -119,6 +119,14 @@ export default function App() {
     [items]
   );
 
+  const existingUsernames = useMemo(
+    () =>
+      items
+        .filter((i) => i.usernames)
+        .map((i) => i.usernames.toLowerCase()),
+    [items]
+  );
+
   const filtered = useMemo(
     () =>
       items.filter((i) => {
@@ -294,6 +302,7 @@ export default function App() {
         <AddModal
           onClose={() => setShowAdd(false)}
           existingUrls={existingUrls}
+          existingUsernames={existingUsernames}
         />
       )}
     </div>
