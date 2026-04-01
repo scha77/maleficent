@@ -32,12 +32,6 @@ function buildSourceDate(y, m, d) {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
-function parseSourceDate(dateStr) {
-  if (!dateStr) return { y: "", m: "", d: "" };
-  const [y, m, d] = dateStr.split("-");
-  return { y, m: String(Number(m)), d: String(Number(d)) };
-}
-
 export default function AddModal({ onClose, existingUrls, existingUsernames }) {
   const [mode, setMode] = useState("embed");
   const [url, setUrl] = useState("");
@@ -46,7 +40,9 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
   const [caption, setCaption] = useState("");
   const [categories, setCategories] = useState(["lies"]);
   const [nsfw, setNsfw] = useState(false);
-  const [sourceDate, setSourceDate] = useState("");
+  const [dateY, setDateY] = useState("");
+  const [dateM, setDateM] = useState("");
+  const [dateD, setDateD] = useState("");
   const [username, setUsername] = useState("@");
   const [platforms, setPlatforms] = useState([]);
   const [error, setError] = useState("");
@@ -156,7 +152,7 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
         category: categories[0],
         nsfw,
         caption: caption.trim(),
-        sourceDate: sourceDate || null,
+        sourceDate: buildSourceDate(dateY, dateM, dateD) || null,
         createdAt: serverTimestamp(),
       };
 
@@ -337,21 +333,20 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
                 Source date (when did this originally happen?)
               </label>
               {(() => {
-                const parsed = parseSourceDate(sourceDate);
                 const currentYear = new Date().getFullYear();
                 const maxDay = daysInMonth(
-                  Number(parsed.m) || 1,
-                  Number(parsed.y) || currentYear
+                  Number(dateM) || 1,
+                  Number(dateY) || currentYear
                 );
-                const updateDate = (y, m, d) => {
-                  const clamped = Math.min(Number(d) || 0, daysInMonth(Number(m) || 1, Number(y) || currentYear));
-                  setSourceDate(buildSourceDate(y, m, clamped || d));
-                };
                 return (
                   <div className={styles.dateSelects}>
                     <select
-                      value={parsed.m}
-                      onChange={(e) => updateDate(parsed.y, e.target.value, parsed.d)}
+                      value={dateM}
+                      onChange={(e) => {
+                        setDateM(e.target.value);
+                        const max = daysInMonth(Number(e.target.value) || 1, Number(dateY) || currentYear);
+                        if (Number(dateD) > max) setDateD(String(max));
+                      }}
                       className={styles.dateSelect}
                       aria-label="Month"
                     >
@@ -361,8 +356,8 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
                       ))}
                     </select>
                     <select
-                      value={parsed.d}
-                      onChange={(e) => updateDate(parsed.y, parsed.m, e.target.value)}
+                      value={dateD}
+                      onChange={(e) => setDateD(e.target.value)}
                       className={styles.dateSelect}
                       aria-label="Day"
                     >
@@ -372,8 +367,12 @@ export default function AddModal({ onClose, existingUrls, existingUsernames }) {
                       ))}
                     </select>
                     <select
-                      value={parsed.y}
-                      onChange={(e) => updateDate(e.target.value, parsed.m, parsed.d)}
+                      value={dateY}
+                      onChange={(e) => {
+                        setDateY(e.target.value);
+                        const max = daysInMonth(Number(dateM) || 1, Number(e.target.value) || currentYear);
+                        if (Number(dateD) > max) setDateD(String(max));
+                      }}
                       className={styles.dateSelect}
                       aria-label="Year"
                     >
